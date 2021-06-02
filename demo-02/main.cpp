@@ -8,6 +8,35 @@ using namespace Eigen;
 
 constexpr double MY_PI = 3.1415926;
 
+Eigen::Matrix4f get_rotation(Vector3f axis, float angle)
+{
+    Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
+    double theta = (angle / 180) * M_PI;
+    Eigen::Matrix4f translate;
+    translate << 1, 0, 0, -axis[0],
+        0, 1, 0, -axis[1],
+        0, 0, 1, -axis[2],
+        0, 0, 0, 1;
+
+    Eigen::Matrix3f rotate;
+    Eigen::Matrix3f axisMatrix;
+    Eigen::Matrix3f identity = Eigen::Matrix3f::Identity();
+    axisMatrix << 0, -axis[2], axis[1],
+        axis[2], 0, -axis[0],
+        -axis[1], axis[0], 0;
+
+    rotate = cos(theta) * identity + (1 - cos(theta)) * axis * axis.transpose() + sin(theta) * axisMatrix;
+
+    Eigen::Matrix4f rotateHomo;
+    rotateHomo << rotate(0, 0), rotate(0, 1), rotate(0, 2), 0,
+        rotate(1, 0), rotate(1, 1), rotate(1, 2), 0,
+        rotate(2, 0), rotate(2, 1), rotate(2, 2), 0,
+        0, 0, 0, 1;
+
+    view = translate.inverse() * rotateHomo * translate;
+    return view;
+}
+
 Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 {
     Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
@@ -108,6 +137,7 @@ int main(int argc, const char **argv)
 
     int key = 0;
     int frame_count = 0;
+    Eigen::Vector3f demoAxis = {0, 0, 1};
 
     if (command_line)
     {
@@ -130,7 +160,7 @@ int main(int argc, const char **argv)
     {
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
 
-        r.set_model(get_model_matrix(angle));
+        r.set_model(get_rotation(demoAxis, angle));
         r.set_view(get_view_matrix(eye_pos));
         r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
