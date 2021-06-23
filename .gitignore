@@ -2,7 +2,9 @@
 
 # vscode
 .vscode/symbols.json
+.DS_Store
 
 # compiled files
 */build
+*/**/build
 
