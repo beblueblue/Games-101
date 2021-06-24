@@ -7,12 +7,13 @@
 #include "global.hpp"
 #include <eigen3/Eigen/Eigen>
 #include <opencv2/opencv.hpp>
-class Texture{
+class Texture
+{
 private:
     cv::Mat image_data;
 
 public:
-    Texture(const std::string& name)
+    Texture(const std::string &name)
     {
         image_data = cv::imread(name);
         cv::cvtColor(image_data, image_data, cv::COLOR_RGB2BGR);
@@ -30,5 +31,15 @@ public:
         return Eigen::Vector3f(color[0], color[1], color[2]);
     }
 
+    // bilinear texel sampling
+    Eigen::Vector3f getColorBilinear(float u, float v)
+    {
+        auto u_img = u * width;
+        auto v_img = (1 - v) * height;
+        cv::Mat patch;
+        cv::getRectSubPix(image_data, cv::Size(1, 1), cv::Point2f(u_img, v_img), patch);
+        auto color = patch.at<cv::Vec3b>(0, 0);
+        return Eigen::Vector3f(color[0], color[1], color[2]);
+    }
 };
 #endif //RASTERIZER_TEXTURE_H
