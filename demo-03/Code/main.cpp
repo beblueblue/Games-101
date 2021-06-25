@@ -281,6 +281,25 @@ Eigen::Vector3f bump_fragment_shader(const fragment_shader_payload &payload)
     // Vector ln = (-dU, -dV, 1)
     // Normal n = normalize(TBN * ln)
 
+    // 构建切线空间
+    Eigen::Vector3f n = normal;
+    Eigen::Vector3f t;
+    t << n.x() * n.y() / std::sqrt(n.x() * n.x() + n.z() * n.z()),
+        std::sqrt(n.x() * n.x() + n.z() * n.z()),
+        n.z() * n.y() / std::sqrt(n.x() * n.x() + n.z() * n.z());
+    Eigen::Vector3f b = n.cross(t);
+    Eigen::Matrix3f TBN;
+    TBN << t, b, n;
+
+    float u = payload.tex_coords(0), v = payload.tex_coords(1);
+    float w = payload.texture->width;
+    float h = payload.texture->height;
+    float dU = kh * kn * (payload.texture->getColor(u + 1.0f / w, v).norm() - payload.texture->getColor(u, v).norm());
+    float dV = kh * kn * (payload.texture->getColor(u + 1.0f / w, v + 1.0f / h).norm() - payload.texture->getColor(u, v).norm());
+    Eigen::Vector3f ln = {-dU, -dV, 1.0f};
+    // pertubated norm vector
+    normal = (TBN * ln).normalized();
+
     Eigen::Vector3f result_color = {0, 0, 0};
     result_color = normal;
 
