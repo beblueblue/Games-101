@@ -237,6 +237,26 @@ Eigen::Vector3f displacement_fragment_shader(const fragment_shader_payload &payl
     // Vector ln = (-dU, -dV, 1)
     // Position p = p + kn * n * h(u,v)
     // Normal n = normalize(TBN * ln)
+    // 构建切线空间
+    Eigen::Vector3f n = normal;
+    Eigen::Vector3f t;
+    t << n.x() * n.y() / std::sqrt(n.x() * n.x() + n.z() * n.z()),
+        std::sqrt(n.x() * n.x() + n.z() * n.z()),
+        n.z() * n.y() / std::sqrt(n.x() * n.x() + n.z() * n.z());
+    Eigen::Vector3f b = n.cross(t);
+    Eigen::Matrix3f TBN;
+    TBN << t, b, n;
+
+    float u = payload.tex_coords(0), v = payload.tex_coords(1);
+    float w = payload.texture->width;
+    float h = payload.texture->height;
+    float dU = kh * kn * (payload.texture->getColor(u + 1.0f / w, v).norm() - payload.texture->getColor(u, v).norm());
+    float dV = kh * kn * (payload.texture->getColor(u + 1.0f / w, v + 1.0f / h).norm() - payload.texture->getColor(u, v).norm());
+    Eigen::Vector3f ln = {-dU, -dV, 1.0f};
+    // displacement
+    point += kn * n * payload.texture->getColor(u, v).norm();
+    // pertubated norm vector
+    normal = (TBN * ln).normalized();
 
     Eigen::Vector3f result_color = {0, 0, 0};
 
@@ -244,6 +264,20 @@ Eigen::Vector3f displacement_fragment_shader(const fragment_shader_payload &payl
     {
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular*
         // components are. Then, accumulate that result on the *result_color* object.
+        auto light_vec = light.position - point;
+        auto view_vec = eye_pos - point;
+        auto radius2 = light_vec.dot(light_vec);
+        auto light_vec_norm = light_vec.normalized();
+        auto view_vec_norm = view_vec.normalized();
+        // diffuse_light: kd * (I/r2) * max(0, n · l)
+        result_color += kd.cwiseProduct(light.intensity) / radius2 * std::max(0.0f, light_vec_norm.dot(normal));
+        // specular_light: ks * (I/r2) * max(0, n · h)^p
+        // h = bisector(v, l) = v + l  / || v + l||
+        auto h_vec = (light_vec_norm + view_vec_norm).normalized();
+        result_color += ks.cwiseProduct(light.intensity) / radius2 * std::pow(std::max(0.0f, h_vec.dot(normal)), p);
+        // ambient_light: ka * Ia
+
+        result_color += ka.cwiseProduct(amb_light_intensity);
     }
 
     return result_color * 255.f;
@@ -370,7 +404,7 @@ int main(int argc, const char **argv)
         }
         else if (argc == 3 && std::string(argv[2]) == "displacement")
         {
-            std::cout << "Rasterizing using the bump shader\n";
+            std::cout << "Rasterizing using the displacement shader\n";
             active_shader = displacement_fragment_shader;
         }
     }
