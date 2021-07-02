@@ -6,7 +6,7 @@ std::vector<cv::Point2f> control_points;
 
 void mouse_handler(int event, int x, int y, int flags, void *userdata)
 {
-    if (event == cv::EVENT_LBUTTONDOWN && control_points.size() < 4)
+    if (event == cv::EVENT_LBUTTONDOWN && control_points.size() < 8)
     {
         std::cout << "Left button of the mouse is clicked - position (" << x << ", "
                   << y << ")" << '\n';
@@ -33,13 +33,34 @@ void naive_bezier(const std::vector<cv::Point2f> &points, cv::Mat &window)
 cv::Point2f recursive_bezier(const std::vector<cv::Point2f> &control_points, float t)
 {
     // TODO: Implement de Casteljau's algorithm
-    return cv::Point2f();
+    int control_points_size = control_points.size();
+
+    if (control_points_size == 1)
+    {
+        return control_points[0];
+    }
+    else
+    {
+        cv::Point2f left_bezier_point, right_bezier_point;
+        std::vector<cv::Point2f> sub_left_points(&(control_points[0]), &(control_points[control_points_size - 1]));
+        std::vector<cv::Point2f> sub_right_points(&(control_points[1]), &(control_points[control_points_size]));
+        left_bezier_point = recursive_bezier(sub_left_points, t);
+        right_bezier_point = recursive_bezier(sub_right_points, t);
+        return left_bezier_point * (1 - t) + right_bezier_point * t;
+    }
 }
 
 void bezier(const std::vector<cv::Point2f> &control_points, cv::Mat &window)
 {
     // TODO: Iterate through all t = 0 to t = 1 with small steps, and call de Casteljau's
     // recursive Bezier algorithm.
+    static float t_step = 0.001;
+    static cv::Point2f point;
+    for (float t = 0.0f; t <= 1.0f; t += t_step)
+    {
+        point = recursive_bezier(control_points, t);
+        window.at<cv::Vec3b>(point.y, point.x)[3] = 255;
+    }
 }
 
 int main()
@@ -60,8 +81,15 @@ int main()
 
         if (control_points.size() == 4)
         {
-            naive_bezier(control_points, window);
-            //   bezier(control_points, window);
+            std::vector<cv::Point2f> sub_left_points(&(control_points[0]), &(control_points[4]));
+            // red line
+            naive_bezier(sub_left_points, window);
+        }
+        if (control_points.size() == 8)
+        {
+            std::vector<cv::Point2f> sub_right_points(&(control_points[4]), &(control_points[8]));
+            // blue line
+            bezier(sub_right_points, window);
 
             cv::imshow("Bezier Curve", window);
             cv::imwrite("my_bezier_curve.png", window);
