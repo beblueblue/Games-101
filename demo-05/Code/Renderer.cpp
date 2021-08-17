@@ -241,8 +241,15 @@ void Renderer::Render(const Scene &scene)
             // vector that passes through it.
             // Also, don't forget to multiply both of them with the variable *scale*, and
             // x (horizontal) variable with the *imageAspectRatio*
+            // 归一化[-1, 1]，原点为屏幕中心
+            x = (float)i / scene.width - 0.5;
+            y = (float)(scene.height - 1 - j) / scene.height - 0.5;
+            // 屏幕空间 --> 投影空间
+            x = 2 * x * scale * imageAspectRatio;
+            y = 2 * y * scale;
 
             Vector3f dir = Vector3f(x, y, -1); // Don't forget to normalize this direction!
+            dir = normalize(dir);
             framebuffer[m++] = castRay(eye_pos, dir, scene, 0);
         }
         UpdateProgress(j / (float)scene.height);
