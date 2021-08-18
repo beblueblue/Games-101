@@ -102,7 +102,7 @@ BVHBuildNode *BVHAccel::recursiveBuild(std::vector<Object *> objects)
 // SAH(Surface Area Heuristic)
 // http://15462.courses.cs.cmu.edu/fall2015/lecture/acceleration/slide_024
 // https://www.cnblogs.com/lookof/p/3546320.html
-BVHBuildNode *SAH_recursiveBuild(std::vector<Object *> objects)
+BVHBuildNode *BVHAccel::SAH_recursiveBuild(std::vector<Object *> objects)
 {
     BVHBuildNode *node = new BVHBuildNode();
 
